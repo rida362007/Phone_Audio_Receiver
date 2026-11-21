@@ -1,0 +1,31 @@
+name: Build & Release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish (self-contained, single file)
+        run: >
+          dotnet publish PhoneAudioReceiver.csproj -c Release -r win-x64
+          --self-contained true -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true -o out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PhoneAudioReceiver
+          path: out/PhoneAudioReceiver.exe
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/PhoneAudioReceiver.exe
+          generate_release_notes: true
